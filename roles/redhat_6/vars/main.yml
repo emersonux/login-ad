@@ -1,0 +1,12 @@
+---
+  pacotes_rhel6:
+    - adcli
+    - sssd
+    - authconfig
+    - pam_krb5
+    - samba-common
+    - epel-release
+
+  # Exemplo de criptografia para a senha do usuário de dominio. Será gerado com o comando ansible-vault
+  #usuario_dominio_pass: !vault |
+  #        $ANSIBLE_VAULT;1.1 $$$$$$

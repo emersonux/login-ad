@@ -1,0 +1,18 @@
+---
+  pacotes_rhel7: 
+    - sssd 
+    - realmd 
+    - oddjob 
+    - oddjob-mkhomedir 
+    - adcli 
+    - samba-common 
+    - samba-common-tools 
+    - krb5-workstation 
+    - openldap-clients 
+    - policycoreutils-python
+    - epel-release
+
+
+  # Exemplo de criptografia para a senha do usuário de dominio. Será gerado com o comando ansible-vault
+  #usuario_dominio_pass: !vault |
+  #        $ANSIBLE_VAULT;1.1 $$$$$$

@@ -1,0 +1,85 @@
+---
+  - name: Teste de conectividade
+    shell: "ping -c2 exemplo.local"
+    tags: 
+    - pre-ingress
+
+  - name: Baixar pacotes
+    yum: 
+      name: "{{ pacotes_rhel7 }}"
+      state: latest
+    tags: 
+    - pre-ingress
+
+  - name: Baixar pip
+    yum: 
+      name: python-pip
+      state: latest
+    tags: 
+    - pre-ingress
+
+  - name: ingress pexpect using pip
+    pip:
+      name: pexpect
+    tags: 
+    - pre-ingress
+
+  - name: Criar o diretorio do krb5
+    file:
+      path: /etc/krb5.conf.d/
+      state: directory
+      mode: '0755'
+    tags:
+      - pre-ingress
+
+  # Substitua o <usuario-dominio> pelo usuário ou pela variável
+  - name: Ingressar pelo realm
+    expect: 
+      command: /bin/bash -c "/sbin/realm join --user=<usuario-dominio> EXEMPLO.local"
+      responses: 
+        (?i)<usuario-dominio>: "{{ usuario_dominio_pass }}" 
+
+  - name: Envio do sssd conf
+    copy: 
+      src: sssd.conf
+      dest: /etc/sssd/sssd.conf
+      mode: '0600'
+    tags:
+      - post-ingress
+      - sssd
+
+  - name: Envio do krb5 conf
+    copy: 
+      src: krb5.conf
+      dest: /etc/krb5.conf
+      mode: '0644'
+      backup: yes
+    tags:
+      - post-ingress
+
+  - name: Configuração de criação do diretório.
+    lineinfile: 
+      path: /etc/pam.d/system-auth
+      state: present
+      line: 'session optional pam_mkhomedir.so skel=/etc/skel umask=077'
+      backup: yes
+    tags:
+      - post-ingress
+
+  - name: Restart do sssd
+    systemd:
+      name: sssd
+      state: restarted
+      enabled: yes
+    tags:
+      - post-ingress
+      - sssd
+
+  - name: Configuracao de Sudo
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      line: '%grupo_acesso     ALL=(ALL)       ALL'
+      validate: /usr/sbin/visudo -cf %s
+    tags:
+      - post-ingress

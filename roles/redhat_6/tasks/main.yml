@@ -1,0 +1,80 @@
+---
+  - name: Teste de conectividade
+    shell: "ping -c2 exemplo.local"
+    tags: 
+    - pre-ingress
+
+  - name: Baixar pacotes
+    yum: 
+      name: "{{ pacotes_rhel6 }}"
+      state: latest
+    tags: 
+    - pre-ingress
+
+  - name: Baixar pip
+    yum: 
+      name: python-pip
+      state: latest
+    tags: 
+    - pre-ingress
+
+  - name: ingress pexpect using pip
+    pip:
+      name: pexpect
+    tags: 
+    - pre-ingress
+
+  # Substituir o <servidor-de-dominio> pelo servidor ou pela variável.
+  - name: Configurar o krb5
+    shell: |
+      authconfig \
+      --enablekrb5 \
+      --krb5kdc=exemplo.local. \
+      --krb5adminserver=<servidor-de-dominio>.exemplo.local \
+      --krb5realm=EXEMPLO.LOCAL \
+      --enablesssd \
+      --enablesssdauth \
+      --enablemkhomedir \ 
+      --update 
+
+
+  - name: Envio do krb5 conf
+    copy: 
+      src: krb5.conf
+      dest: /etc/krb5.conf
+      mode: '0644'
+      backup: yes
+
+  # Substitua o <usuario-dominio> pelo usuário ou pela variável
+  - name: Ingressar pelo adcli
+    expect: 
+      command: /bin/bash -c "adcli join --user=<usuario-dominio> EXEMPLO.local"
+      responses: 
+        (?i)<usuario-dominio>: "{{ usuario_dominio_pass }}" 
+
+  - name: Envio do sssd conf
+    copy: 
+      src: sssd.conf
+      dest: /etc/sssd/sssd.conf
+      mode: '0600'
+    tags:
+      - post-ingress
+      - sssd
+
+  - name: Restart do sssd
+    service:
+      name: sssd
+      state: restarted
+      enabled: yes
+    tags:
+    - post-ingress 
+    - sssd
+
+  - name: Configuracao de Sudo
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      line: '%grupo_acesso     ALL=(ALL)       ALL'
+      validate: /usr/sbin/visudo -cf %s
+    tags:
+      - post-ingress
